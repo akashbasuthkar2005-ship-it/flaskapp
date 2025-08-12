@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Server Status</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Flask VPN Simulator</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Client</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/server">Server Status</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logs">Logs</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-10 offset-md-1">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4>VPN Server Status Dashboard</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Active Clients</h5>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-users me-2" style="font-size: 1.5rem; color: var(--primary);"></i>
+                                            <h2 id="active-clients" class="display-4 mb-0">{{ active_clients }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Total Messages</h5>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-envelope me-2" style="font-size: 1.5rem; color: var(--primary);"></i>
+                                            <h2 id="total-messages" class="display-4 mb-0">{{ total_messages }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Server Uptime</h5>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-server me-2" style="font-size: 1.5rem; color: var(--primary);"></i>
+                                            <h2 id="server-uptime" class="display-4 mb-0">{{ uptime }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5>Client Activity</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="clientChart" width="400" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5>Message Traffic</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="messageChart" width="400" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5>Server Log (Last 10 Events)</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="server-log" class="server-log">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Time</th>
+                                                        <th>Event</th>
+                                                        <th>Details</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="log-entries">
+                                                    <tr>
+                                                        <td colspan="3" class="text-center">Loading server logs...</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const activeClientsElement = document.getElementById('active-clients');
+            const totalMessagesElement = document.getElementById('total-messages');
+            const serverUptimeElement = document.getElementById('server-uptime');
+            const logEntriesElement = document.getElementById('log-entries');
+            
+            // Initialize charts
+            const clientCtx = document.getElementById('clientChart').getContext('2d');
+            const messageCtx = document.getElementById('messageChart').getContext('2d');
+            
+            // Client activity chart
+            const clientChart = new Chart(clientCtx, {
+                type: 'line',
+                data: {
+                    labels: generateTimeLabels(10),
+                    datasets: [{
+                        label: 'Active Clients',
+                        data: [0],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 500
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.4
+                        },
+                        point: {
+                            radius: 5,
+                            hoverRadius: 7
+                        }
+                    }
+                }
+            });
+            
+            // Message traffic chart
+            const messageChart = new Chart(messageCtx, {
+                type: 'bar',
+                data: {
+                    labels: generateTimeLabels(10),
+                    datasets: [{
+                        label: 'Messages',
+                        data: [0],
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 2
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Socket.io connection for real-time updates
+            const socket = io();
+            
+            // Server stats update
+            socket.on('server_stats_update', function(data) {
+                // Update stats
+                activeClientsElement.textContent = data.active_clients;
+                totalMessagesElement.textContent = data.total_messages;
+                
+                // Update charts
+                updateClientChart(data.active_clients);
+                updateMessageChart(data.total_messages);
+            });
+            
+            // Fetch server logs
+            fetchServerLogs();
+            
+            // Update uptime every second
+            let initialUptime = parseUptime("{{ uptime }}");
+            setInterval(updateUptime, 1000, initialUptime);
+            
+            // Functions
+            function generateTimeLabels(count) {
+                const labels = [];
+                const now = new Date();
+                
+                for (let i = count - 1; i >= 0; i--) {
+                    const time = new Date(now - i * 60000);
+                    labels.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                }
+                
+                return labels;
+            }
+            
+            function updateClientChart(activeClients) {
+                // Add new data point
+                clientChart.data.datasets[0].data.push(activeClients);
+                
+                // Remove oldest data point if we have more than 10
+                if (clientChart.data.datasets[0].data.length > 10) {
+                    clientChart.data.datasets[0].data.shift();
+                }
+                
+                // Update time labels
+                clientChart.data.labels.push(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                if (clientChart.data.labels.length > 10) {
+                    clientChart.data.labels.shift();
+                }
+                
+                // Update chart
+                clientChart.update();
+            }
+            
+            function updateMessageChart(totalMessages) {
+                // Calculate message delta
+                const lastValue = messageChart.data.datasets[0].data[messageChart.data.datasets[0].data.length - 1] || 0;
+                const delta = Math.max(0, totalMessages - lastValue);
+                
+                // Add new data point
+                messageChart.data.datasets[0].data.push(delta);
+                
+                // Remove oldest data point if we have more than 10
+                if (messageChart.data.datasets[0].data.length > 10) {
+                    messageChart.data.datasets[0].data.shift();
+                }
+                
+                // Update time labels
+                messageChart.data.labels.push(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                if (messageChart.data.labels.length > 10) {
+                    messageChart.data.labels.shift();
+                }
+                
+                // Update chart
+                messageChart.update();
+            }
+            
+            function parseUptime(uptimeStr) {
+                const parts = uptimeStr.split(' ');
+                let seconds = 0;
+                
+                for (let i = 0; i < parts.length; i += 2) {
+                    const value = parseInt(parts[i]);
+                    const unit = parts[i + 1];
+                    
+                    if (unit.startsWith('h')) {
+                        seconds += value * 3600;
+                    } else if (unit.startsWith('m')) {
+                        seconds += value * 60;
+                    } else if (unit.startsWith('s')) {
+                        seconds += value;
+                    }
+                }
+                
+                return seconds;
+            }
+            
+            function updateUptime(initialSeconds) {
+                initialSeconds++;
+                const hours = Math.floor(initialSeconds / 3600);
+                const minutes = Math.floor((initialSeconds % 3600) / 60);
+                const seconds = initialSeconds % 60;
+                
+                serverUptimeElement.textContent = `${hours}h ${minutes}m ${seconds}s`;
+            }
+            
+            async function fetchServerLogs() {
+                try {
+                    // Fetch connection logs
+                    const connectionResponse = await fetch('/api/logs/connections?limit=5');
+                    const connectionLogs = await connectionResponse.json();
+                    
+                    // Fetch message logs
+                    const messageResponse = await fetch('/api/logs/messages?limit=5');
+                    const messageLogs = await messageResponse.json();
+                    
+                    // Combine and sort logs
+                    const combinedLogs = [
+                        ...connectionLogs.map(log => ({
+                            time: new Date(log.connection_time),
+                            event: log.status === 'connected' ? 'Connection' : 'Disconnection',
+                            details: `Client ${log.client_id} (${log.ip_address})`
+                        })),
+                        ...messageLogs.map(log => ({
+                            time: new Date(log.timestamp),
+                            event: 'Message',
+                            details: `${log.direction === 'incoming' ? 'Server → Client' : 'Client → Server'}: "${log.message.substring(0, 30)}${log.message.length > 30 ? '...' : ''}"`
+                        }))
+                    ];
+                    
+                    // Sort by time (newest first)
+                    combinedLogs.sort((a, b) => b.time - a.time);
+                    
+                    // Take only the 10 most recent logs
+                    const recentLogs = combinedLogs.slice(0, 10);
+                    
+                    // Update the log table
+                    logEntriesElement.innerHTML = '';
+                    if (recentLogs.length === 0) {
+                        logEntriesElement.innerHTML = '<tr><td colspan="3" class="text-center">No logs available</td></tr>';
+                    } else {
+                        recentLogs.forEach(log => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${log.time.toLocaleString()}</td>
+                                <td>${log.event}</td>
+                                <td>${log.details}</td>
+                            `;
+                            logEntriesElement.appendChild(row);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching logs:', error);
+                    logEntriesElement.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error loading logs</td></tr>';
+                }
+                
+                // Refresh logs every 5 seconds
+                setTimeout(fetchServerLogs, 5000);
+            }
+        });
+    </script>
+</body>
+</html>
