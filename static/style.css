@@ -27,6 +27,56 @@ body {
   line-height: 1.6;
 }
 
+.form-container {
+  background: var(--card-bg);
+  max-width: 350px;
+  margin: 60px auto 0 auto;
+  padding: 2rem 2.5rem 1.5rem 2.5rem;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--card-border);
+  text-align: center;
+}
+.form-container h2 {
+  margin-bottom: 1.5rem;
+  color: var(--primary);
+}
+.form-container input[type="text"],
+.form-container input[type="password"] {
+  width: 90%;
+  padding: 0.7rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--gray-light);
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: var(--transition);
+}
+.form-container input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+.form-container button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0.7rem 2.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.form-container button:hover {
+  background: var(--primary-dark);
+}
+.form-container a {
+  color: var(--secondary);
+  text-decoration: none;
+  font-weight: 500;
+}
+.form-container a:hover {
+  text-decoration: underline;
+}
+
 .navbar {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;

@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VPN Logs</title>
+    <title>VPN Server Status</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
@@ -21,10 +22,10 @@
                         <a class="nav-link" href="/">Client</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/server">Server Status</a>
+                        <a class="nav-link active" href="/server">Server Status</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/logs">Logs</a>
+                        <a class="nav-link" href="/logs">Logs</a>
                     </li>
                 </ul>
             </div>
@@ -33,115 +34,95 @@
 
     <div class="container mt-4">
         <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-10 offset-md-1">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h4>VPN Logs</h4>
+                        <h4>VPN Server Status Dashboard</h4>
                     </div>
                     <div class="card-body">
-                        <ul class="nav nav-tabs" id="logTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="connections-tab" data-bs-toggle="tab" data-bs-target="#connections" type="button" role="tab" aria-controls="connections" aria-selected="true">Connection Logs</button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages" type="button" role="tab" aria-controls="messages" aria-selected="false">Message Logs</button>
-                            </li>
-                        </ul>
-                        
-                        <div class="tab-content mt-3" id="logTabsContent">
-                            <!-- Connection Logs Tab -->
-                            <div class="tab-pane fade show active" id="connections" role="tabpanel" aria-labelledby="connections-tab">
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <div class="input-group">
-                                            <span class="input-group-text">Date</span>
-                                            <input type="date" id="connection-date-filter" class="form-control">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Active Clients</h5>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-users me-2" style="font-size: 1.5rem; color: var(--primary);"></i>
+                                            <h2 id="active-clients" class="display-4 mb-0">{{ active_clients }}</h2>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="input-group">
-                                            <span class="input-group-text">IP</span>
-                                            <input type="text" id="connection-ip-filter" class="form-control" placeholder="Filter by IP...">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <button id="connection-filter-btn" class="btn btn-primary">
-                                            <i class="fas fa-filter me-1"></i> Apply Filters
-                                        </button>
-                                        <button id="connection-clear-btn" class="btn btn-secondary ms-2">
-                                            <i class="fas fa-times me-1"></i> Clear
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Client ID</th>
-                                                <th>IP Address</th>
-                                                <th>Connection Time</th>
-                                                <th>Disconnection Time</th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="connection-logs">
-                                            <tr>
-                                                <td colspan="5" class="text-center">Loading connection logs...</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
                                 </div>
                             </div>
-                            
-                            <!-- Message Logs Tab -->
-                            <div class="tab-pane fade" id="messages" role="tabpanel" aria-labelledby="messages-tab">
-                                <div class="row mb-3">
-                                    <div class="col-md-3">
-                                        <div class="input-group">
-                                            <span class="input-group-text">Date</span>
-                                            <input type="date" id="message-date-filter" class="form-control">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Total Messages</h5>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-envelope me-2" style="font-size: 1.5rem; color: var(--primary);"></i>
+                                            <h2 id="total-messages" class="display-4 mb-0">{{ total_messages }}</h2>
                                         </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="input-group">
-                                            <span class="input-group-text">IP</span>
-                                            <input type="text" id="message-ip-filter" class="form-control" placeholder="Filter by IP...">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="input-group">
-                                            <span class="input-group-text">Content</span>
-                                            <input type="text" id="message-content-filter" class="form-control" placeholder="Filter by content...">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <button id="message-filter-btn" class="btn btn-primary">
-                                            <i class="fas fa-filter me-1"></i> Apply Filters
-                                        </button>
-                                        <button id="message-clear-btn" class="btn btn-secondary ms-2">
-                                            <i class="fas fa-times me-1"></i> Clear
-                                        </button>
                                     </div>
                                 </div>
-                                
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Client ID</th>
-                                                <th>IP Address</th>
-                                                <th>Message</th>
-                                                <th>Timestamp</th>
-                                                <th>Direction</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="message-logs">
-                                            <tr>
-                                                <td colspan="5" class="text-center">Loading message logs...</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Server Uptime</h5>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-server me-2" style="font-size: 1.5rem; color: var(--primary);"></i>
+                                            <h2 id="server-uptime" class="display-4 mb-0">{{ uptime }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5>Client Activity</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="clientChart" width="400" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5>Message Traffic</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="messageChart" width="400" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5>Server Log (Last 10 Events)</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="server-log" class="server-log">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Time</th>
+                                                        <th>Event</th>
+                                                        <th>Details</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="log-entries">
+                                                    <tr>
+                                                        <td colspan="3" class="text-center">Loading server logs...</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -152,155 +133,247 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // DOM elements
-            const connectionDateFilter = document.getElementById('connection-date-filter');
-            const connectionIpFilter = document.getElementById('connection-ip-filter');
-            const connectionFilterBtn = document.getElementById('connection-filter-btn');
-            const connectionClearBtn = document.getElementById('connection-clear-btn');
-            const connectionLogsTable = document.getElementById('connection-logs');
+            const activeClientsElement = document.getElementById('active-clients');
+            const totalMessagesElement = document.getElementById('total-messages');
+            const serverUptimeElement = document.getElementById('server-uptime');
+            const logEntriesElement = document.getElementById('log-entries');
             
-            const messageDateFilter = document.getElementById('message-date-filter');
-            const messageIpFilter = document.getElementById('message-ip-filter');
-            const messageContentFilter = document.getElementById('message-content-filter');
-            const messageFilterBtn = document.getElementById('message-filter-btn');
-            const messageClearBtn = document.getElementById('message-clear-btn');
-            const messageLogsTable = document.getElementById('message-logs');
+            // Initialize charts
+            const clientCtx = document.getElementById('clientChart').getContext('2d');
+            const messageCtx = document.getElementById('messageChart').getContext('2d');
             
-            // Load initial data
-            fetchConnectionLogs();
-            
-            // Tab change event
-            const messageTab = document.getElementById('messages-tab');
-            messageTab.addEventListener('shown.bs.tab', function() {
-                fetchMessageLogs();
-            });
-            
-            // Connection log filters
-            connectionFilterBtn.addEventListener('click', fetchConnectionLogs);
-            connectionClearBtn.addEventListener('click', function() {
-                connectionDateFilter.value = '';
-                connectionIpFilter.value = '';
-                fetchConnectionLogs();
-            });
-            
-            // Message log filters
-            messageFilterBtn.addEventListener('click', fetchMessageLogs);
-            messageClearBtn.addEventListener('click', function() {
-                messageDateFilter.value = '';
-                messageIpFilter.value = '';
-                messageContentFilter.value = '';
-                fetchMessageLogs();
-            });
-            
-            // Fetch connection logs with filters
-            async function fetchConnectionLogs() {
-                const dateFilter = connectionDateFilter.value;
-                const ipFilter = connectionIpFilter.value;
-                
-                let url = '/api/logs/connections';
-                const params = [];
-                
-                if (dateFilter) {
-                    params.push(`date=${dateFilter}`);
-                }
-                
-                if (ipFilter) {
-                    params.push(`ip=${ipFilter}`);
-                }
-                
-                if (params.length > 0) {
-                    url += '?' + params.join('&');
-                }
-                
-                try {
-                    connectionLogsTable.innerHTML = '<tr><td colspan="5" class="text-center">Loading connection logs...</td></tr>';
-                    
-                    const response = await fetch(url);
-                    const logs = await response.json();
-                    
-                    if (logs.length === 0) {
-                        connectionLogsTable.innerHTML = '<tr><td colspan="5" class="text-center">No connection logs found</td></tr>';
-                        return;
+            // Client activity chart
+            const clientChart = new Chart(clientCtx, {
+                type: 'line',
+                data: {
+                    labels: generateTimeLabels(10),
+                    datasets: [{
+                        label: 'Active Clients',
+                        data: [0],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 500
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.4
+                        },
+                        point: {
+                            radius: 5,
+                            hoverRadius: 7
+                        }
                     }
-                    
-                    connectionLogsTable.innerHTML = '';
-                    logs.forEach(log => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${log.client_id}</td>
-                            <td>${log.ip_address}</td>
-                            <td>${formatDateTime(log.connection_time)}</td>
-                            <td>${log.disconnection_time ? formatDateTime(log.disconnection_time) : '-'}</td>
-                            <td><span class="badge ${log.status === 'connected' ? 'bg-success' : 'bg-danger'}">${log.status}</span></td>
-                        `;
-                        connectionLogsTable.appendChild(row);
-                    });
-                } catch (error) {
-                    console.error('Error fetching connection logs:', error);
-                    connectionLogsTable.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading connection logs</td></tr>';
                 }
+            });
+            
+            // Message traffic chart
+            const messageChart = new Chart(messageCtx, {
+                type: 'bar',
+                data: {
+                    labels: generateTimeLabels(10),
+                    datasets: [{
+                        label: 'Messages',
+                        data: [0],
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 2
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Socket.io connection for real-time updates
+            const socket = io();
+            
+            // Server stats update
+            socket.on('server_stats_update', function(data) {
+                // Update stats
+                activeClientsElement.textContent = data.active_clients;
+                totalMessagesElement.textContent = data.total_messages;
+                
+                // Update charts
+                updateClientChart(data.active_clients);
+                updateMessageChart(data.total_messages);
+            });
+            
+            // Fetch server logs
+            fetchServerLogs();
+            
+            // Update uptime every second
+            let initialUptime = parseUptime("{{ uptime }}");
+            setInterval(updateUptime, 1000, initialUptime);
+            
+            // Functions
+            function generateTimeLabels(count) {
+                const labels = [];
+                const now = new Date();
+                
+                for (let i = count - 1; i >= 0; i--) {
+                    const time = new Date(now - i * 60000);
+                    labels.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                }
+                
+                return labels;
             }
             
-            // Fetch message logs with filters
-            async function fetchMessageLogs() {
-                const dateFilter = messageDateFilter.value;
-                const ipFilter = messageIpFilter.value;
-                const contentFilter = messageContentFilter.value;
+            function updateClientChart(activeClients) {
+                // Add new data point
+                clientChart.data.datasets[0].data.push(activeClients);
                 
-                let url = '/api/logs/messages';
-                const params = [];
-                
-                if (dateFilter) {
-                    params.push(`date=${dateFilter}`);
+                // Remove oldest data point if we have more than 10
+                if (clientChart.data.datasets[0].data.length > 10) {
+                    clientChart.data.datasets[0].data.shift();
                 }
                 
-                if (ipFilter) {
-                    params.push(`ip=${ipFilter}`);
+                // Update time labels
+                clientChart.data.labels.push(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                if (clientChart.data.labels.length > 10) {
+                    clientChart.data.labels.shift();
                 }
                 
-                if (contentFilter) {
-                    params.push(`content=${contentFilter}`);
-                }
-                
-                if (params.length > 0) {
-                    url += '?' + params.join('&');
-                }
-                
-                try {
-                    messageLogsTable.innerHTML = '<tr><td colspan="5" class="text-center">Loading message logs...</td></tr>';
-                    
-                    const response = await fetch(url);
-                    const logs = await response.json();
-                    
-                    if (logs.length === 0) {
-                        messageLogsTable.innerHTML = '<tr><td colspan="5" class="text-center">No message logs found</td></tr>';
-                        return;
-                    }
-                    
-                    messageLogsTable.innerHTML = '';
-                    logs.forEach(log => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${log.client_id}</td>
-                            <td>${log.ip_address}</td>
-                            <td>${log.message}</td>
-                            <td>${formatDateTime(log.timestamp)}</td>
-                            <td><span class="badge ${log.direction === 'incoming' ? 'bg-info' : 'bg-primary'}">${log.direction}</span></td>
-                        `;
-                        messageLogsTable.appendChild(row);
-                    });
-                } catch (error) {
-                    console.error('Error fetching message logs:', error);
-                    messageLogsTable.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading message logs</td></tr>';
-                }
+                // Update chart
+                clientChart.update();
             }
             
-            // Helper function to format date and time
-            function formatDateTime(dateTimeStr) {
-                const date = new Date(dateTimeStr);
-                return date.toLocaleString();
+            function updateMessageChart(totalMessages) {
+                // Calculate message delta
+                const lastValue = messageChart.data.datasets[0].data[messageChart.data.datasets[0].data.length - 1] || 0;
+                const delta = Math.max(0, totalMessages - lastValue);
+                
+                // Add new data point
+                messageChart.data.datasets[0].data.push(delta);
+                
+                // Remove oldest data point if we have more than 10
+                if (messageChart.data.datasets[0].data.length > 10) {
+                    messageChart.data.datasets[0].data.shift();
+                }
+                
+                // Update time labels
+                messageChart.data.labels.push(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                if (messageChart.data.labels.length > 10) {
+                    messageChart.data.labels.shift();
+                }
+                
+                // Update chart
+                messageChart.update();
+            }
+            
+            function parseUptime(uptimeStr) {
+                const parts = uptimeStr.split(' ');
+                let seconds = 0;
+                
+                for (let i = 0; i < parts.length; i += 2) {
+                    const value = parseInt(parts[i]);
+                    const unit = parts[i + 1];
+                    
+                    if (unit.startsWith('h')) {
+                        seconds += value * 3600;
+                    } else if (unit.startsWith('m')) {
+                        seconds += value * 60;
+                    } else if (unit.startsWith('s')) {
+                        seconds += value;
+                    }
+                }
+                
+                return seconds;
+            }
+            
+            function updateUptime(initialSeconds) {
+                initialSeconds++;
+                const hours = Math.floor(initialSeconds / 3600);
+                const minutes = Math.floor((initialSeconds % 3600) / 60);
+                const seconds = initialSeconds % 60;
+                
+                serverUptimeElement.textContent = `${hours}h ${minutes}m ${seconds}s`;
+            }
+            
+            async function fetchServerLogs() {
+                try {
+                    // Fetch connection logs
+                    const connectionResponse = await fetch('/api/logs/connections?limit=5');
+                    const connectionLogs = await connectionResponse.json();
+                    
+                    // Fetch message logs
+                    const messageResponse = await fetch('/api/logs/messages?limit=5');
+                    const messageLogs = await messageResponse.json();
+                    
+                    // Combine and sort logs
+                    const combinedLogs = [
+                        ...connectionLogs.map(log => ({
+                            time: new Date(log.connection_time),
+                            event: log.status === 'connected' ? 'Connection' : 'Disconnection',
+                            details: `Client ${log.client_id} (${log.ip_address})`
+                        })),
+                        ...messageLogs.map(log => ({
+                            time: new Date(log.timestamp),
+                            event: 'Message',
+                            details: `${log.direction === 'incoming' ? 'Server → Client' : 'Client → Server'}: "${log.message.substring(0, 30)}${log.message.length > 30 ? '...' : ''}"`
+                        }))
+                    ];
+                    
+                    // Sort by time (newest first)
+                    combinedLogs.sort((a, b) => b.time - a.time);
+                    
+                    // Take only the 10 most recent logs
+                    const recentLogs = combinedLogs.slice(0, 10);
+                    
+                    // Update the log table
+                    logEntriesElement.innerHTML = '';
+                    if (recentLogs.length === 0) {
+                        logEntriesElement.innerHTML = '<tr><td colspan="3" class="text-center">No logs available</td></tr>';
+                    } else {
+                        recentLogs.forEach(log => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${log.time.toLocaleString()}</td>
+                                <td>${log.event}</td>
+                                <td>${log.details}</td>
+                            `;
+                            logEntriesElement.appendChild(row);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching logs:', error);
+                    logEntriesElement.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error loading logs</td></tr>';
+                }
+                
+                // Refresh logs every 5 seconds
+                setTimeout(fetchServerLogs, 5000);
             }
         });
     </script>
